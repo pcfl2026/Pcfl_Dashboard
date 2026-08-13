@@ -1,151 +1,98 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+st.set_page_config(page_title="PCFL Stats", layout="wide", initial_sidebar_state="collapsed")
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+st.markdown("""
+    <style>
+    .stApp { background-color: #0d1117; color: #f0f6fc; }
+    h1, h2, h3, p, span, div { font-family: 'Inter', sans-serif; }
+    .brand-header { background-color: #161b22; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #21262d; }
+    .brand-logo { background-color: #da1e28; color: white; padding: 6px 12px; font-weight: 800; border-radius: 4px; font-size: 1.1rem; }
+    .no-data-box { background-color: #161b22; border: 1px dashed #30363d; border-radius: 12px; padding: 30px; text-align: center; color: #8b949e; margin-bottom: 15px; }
+    </style>
+    """, unsafe_allow_html=True)
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+st.markdown("""
+    <div class="brand-header">
+        <div>
+            <span class="brand-logo">PCFL</span>
+            <span style="margin-left: 10px; font-weight: 600; font-size: 1.2rem; color: #8b949e;">Preseason</span>
+        </div>
+        <div style="color: #8b949e; font-weight: 500;">2026 Registration 🔍 ☰</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+st.title("PCFL FOOTBALL")
+st.caption("Preseason Layout Engine")
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+if 'matchups_db' not in st.session_state:
+    st.session_state.matchups_db = pd.DataFrame(columns=["Home Team", "Away Team"])
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+if 'players_db' not in st.session_state:
+    st.session_state.players_db = pd.DataFrame(columns=["Player", "Team", "Position"])
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
+col_left, col_right = st.columns(2)
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+with col_left:
+    st.subheader("🏈 UPCOMING MATCHUPS")
+    if st.session_state.matchups_db.empty:
+        st.markdown("""
+            <div class="no-data-box">
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">No Matchups Scheduled</p>
+                <span style="font-size: 0.85rem;">Preseason schedule is currently empty.</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        for _, row in st.session_state.matchups_db.iterrows():
+            st.markdown(f"""
+                <div style="background-color: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+                    <div style="font-size: 0.8rem; color: #da1e28; font-weight: 700; margin-bottom: 4px;">PRESEASON • MATCHUP</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0;">
+                        <span style="font-size: 1.1rem; font-weight: 600;">{row['Home Team']}</span>
+                        <span style="background-color: #21262d; color: #8b949e; padding: 3px 8px; font-size: 0.8rem; font-weight: 700; border-radius: 4px;">VS</span>
+                        <span style="font-size: 1.1rem; font-weight: 600;">{row['Away Team']}</span>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-    return gdp_df
+with col_right:
+    st.subheader("📋 REGISTERED LEAGUE ROSTERS")
+    if st.session_state.players_db.empty:
+        st.markdown("""
+            <div class="no-data-box">
+                <p style="font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Rosters Empty</p>
+                <span style="font-size: 0.85rem;">Preseason player registrations have not started yet.</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown('<div style="background-color: #161b22; border-radius: 12px; overflow: hidden; border: 1px solid #30363d;">', unsafe_allow_html=True)
+        st.markdown('<div style="padding: 12px 16px; background-color: #21262d; font-weight: 700; color: #8b949e;">OFFICIAL ROSTER</div>', unsafe_allow_html=True)
+        for _, row in st.session_state.players_db.iterrows():
+            st.markdown(f"""
+                <div style="background-color: #161b22; border-bottom: 1px solid #21262d; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;">
+                    <div style="flex-grow: 1;">
+                        <p style="font-weight: 700; color: #ffffff; margin: 0;">{row['Player']}</p>
+                        <span style="font-size: 0.85rem; color: #8b949e;">{row['Team']} • {row['Position']}</span>
+                    </div>
+                    <span style="color: #8b949e; font-weight: 600; font-size: 0.85rem;">PRESEASON</span>
+                </div>
+                """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-gdp_df = get_gdp_data()
+st.markdown("---")
+st.subheader("🛠️ LIVE PCFL COMMISSIONER PANEL")
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+tab1, tab2 = st.tabs(["✏️ Manage Matchups Screen", "✏️ Manage Roster Screen"])
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+with tab1:
+    edited_matchups = st.data_editor(st.session_state.matchups_db, num_rows="dynamic", use_container_width=True, key="edit_match")
+    if st.button("Save Changes & Refresh Matchups"):
+        st.session_state.matchups_db = edited_matchups
+        st.rerun()
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+with tab2:
+    edited_players = st.data_editor(st.session_state.players_db, num_rows="dynamic", use_container_width=True, key="edit_play")
+    if st.button("Save Changes & Refresh Rosters"):
+        st.session_state.players_db = edited_players
+        st.rerun()
